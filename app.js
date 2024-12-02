@@ -8,12 +8,14 @@ var mongoose = require("mongoose");
 require("./models/userModel");
 require("./models/categoryModel");
 require("./models/studentModel");
+require("./models/payModel");
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var studentRouter = require('./routes/student');
 var uploadRouter = require('./routes/upload');
 var transporterRouter = require('./routes/transporter');
+var payRouter = require('./routes/pay');
 
 var app = express();
 
@@ -37,6 +39,7 @@ app.use('/users', usersRouter);
 app.use('/student', studentRouter);
 app.use('/upload', uploadRouter);
 app.use('/api', transporterRouter);
+app.use('/pay', payRouter); 
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
