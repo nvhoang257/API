@@ -50,27 +50,33 @@ router.get("/chuyenkhoan", async function (req, res) {
     }
 });
 
-// 3. Lấy toàn bộ danh sách giao dịch có loaiGiaoDich là "Chuyển khoản"
-router.get("/chuyenkhoan", async function (req, res) {
+// 3. Lấy toàn bộ danh sách giao dịch có loaiGiaoDich là "Tiền mặt"
+router.get("/tienmat", async function (req, res) {
     try {
-        const token = req.header("Authorization").split(' ')[1];
+        const token = req.header("Authorization").split(' ')[1]; // Lấy token từ header
         if (token) {
             JWT.verify(token, config.SECRETKEY, async function (err, id) {
                 if (err) {
                     res.status(403).json({ status: false, message: "Có lỗi xảy ra: " + err });
                 } else {
-                    const giaoDichChuyenKhoan = await payModel.find({ loaiGiaoDich: "Chuyển khoản" });
-                    res.status(200).json(giaoDichChuyenKhoan);
+                    const giaoDichTienMat = await payModel.find({ loaiGiaoDich: "Tiền mặt" });
+
+                    if (giaoDichTienMat.length > 0) {
+                        res.status(200).json(giaoDichTienMat);
+                    } else {
+                        res.status(404).json({ status: false, message: "Không có giao dịch Tiền mặt" });
+                    }
                 }
             });
         } else {
             res.status(404).json({ status: false, message: "Không xác thực" });
         }
     } catch (error) {
-        console.error("Error fetching Chuyển khoản transactions:", error);
+        console.error("Error fetching Tiền mặt transactions:", error);
         res.status(500).json({ status: false, message: "Có lỗi khi xảy ra: " + error });
     }
 });
+
 
 // 4. Lấy danh sách giao dịch có soTien từ 500 đến 1500
 router.get("/sotien", async function (req, res) {
