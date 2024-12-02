@@ -152,7 +152,8 @@ router.post("/them", async function (req, res) {
         res.status(500).json({ status: false, message: "Có lỗi xảy ra: " + error });
     }
 });
-// 7. Cập nhật thông tin giao dịch theo _id (set cứng giá trị)
+
+// 7. Cập nhật thông tin giao dịch theo _id (sử dụng tham số từ body)
 router.put("/capnhat/:id", async function (req, res) {
     try {
         const token = req.header("Authorization").split(' ')[1];
@@ -161,13 +162,22 @@ router.put("/capnhat/:id", async function (req, res) {
                 if (err) {
                     res.status(403).json({ "status": false, message: "Có lỗi xảy ra: " + err });
                 } else {
-                    const { id } = req.params; 
+                    const { id } = req.params;  
+                    const { ngayGiaoDich, soTien, loaiGiaoDich, idNguoiDung } = req.body;
 
+                    if (!ngayGiaoDich || !soTien || !loaiGiaoDich || !idNguoiDung) {
+                        return res.status(400).json({
+                            status: false,
+                            message: "Vui lòng cung cấp đầy đủ thông tin giao dịch"
+                        });
+                    }
+
+                   
                     const newTransactionData = {
-                        ngayGiaoDich: new Date("2024-12-19"),  
-                        soTien: 5000,                          
-                        loaiGiaoDich: "Chuyển khoản",              
-                        idNguoiDung: "A008"     
+                        ngayGiaoDich: new Date(ngayGiaoDich),
+                        soTien,
+                        loaiGiaoDich,
+                        idNguoiDung
                     };
 
                     const updatedTransaction = await payModel.findByIdAndUpdate(
@@ -180,7 +190,11 @@ router.put("/capnhat/:id", async function (req, res) {
                         return res.status(404).json({ status: false, message: "Không tìm thấy giao dịch để cập nhật" });
                     }
 
-                    res.status(200).json({ status: true, message: "Cập nhật giao dịch thành công", updatedTransaction });
+                    res.status(200).json({
+                        status: true,
+                        message: "Cập nhật giao dịch thành công",
+                        updatedTransaction
+                    });
                 }
             });
         } else {
@@ -193,7 +207,8 @@ router.put("/capnhat/:id", async function (req, res) {
 
 
 
-// 8. Xóa giao dịch theo _id (set cứng giá trị)
+
+// 8. Xóa giao dịch theo _id và idNguoiDung từ tham số hoặc body
 router.delete("/xoa/:id", async function (req, res) {
     try {
         const token = req.header("Authorization").split(' ')[1];
@@ -203,10 +218,21 @@ router.delete("/xoa/:id", async function (req, res) {
                     res.status(403).json({ "status": false, message: "Có lỗi xảy ra: " + err });
                 } else {
                     const { id } = req.params;
-                    const deletedTransaction = await payModel.findOneAndDelete({ _id: id, idNguoiDung: "A009" });
+                    const { idNguoiDung } = req.body;
+
+                    
+                    if (!idNguoiDung) {
+                        return res.status(400).json({
+                            status: false,
+                            message: "Vui lòng cung cấp idNguoiDung để xóa giao dịch"
+                        });
+                    }
+
+         
+                    const deletedTransaction = await payModel.findOneAndDelete({ _id: id, idNguoiDung });
 
                     if (!deletedTransaction) {
-                        return res.status(404).json({ status: false, message: "Không tìm thấy giao dịch với idNguoiDung = A009 để xóa" });
+                        return res.status(404).json({ status: false, message: "Không tìm thấy giao dịch để xóa" });
                     }
 
                     res.status(200).json({ status: true, message: "Xóa giao dịch thành công" });
@@ -220,7 +246,8 @@ router.delete("/xoa/:id", async function (req, res) {
     }
 });
 
-// 9. Lọc giao dịch theo ngày giao dịch (set cứng ngày bắt đầu và kết thúc)
+
+// 9. Lọc giao dịch theo ngày giao dịch (ngày bắt đầu và kết thúc từ tham số)
 router.get("/timtheongay", async function (req, res) {
     try {
         const token = req.header("Authorization").split(' ')[1];
@@ -229,12 +256,22 @@ router.get("/timtheongay", async function (req, res) {
                 if (err) {
                     res.status(403).json({ "status": false, message: "Có lỗi xảy ra: " + err });
                 } else {
+                   
+                    const { startDate, endDate } = req.query;
+
                     
-                    const targetDate = "2024-12-15";
-                    
+                    if (!startDate || !endDate) {
+                        return res.status(400).json({
+                            status: false,
+                            message: "Vui lòng cung cấp startDate và endDate"
+                        });
+                    }
+
+
                     const transactions = await payModel.find({
                         ngayGiaoDich: {
-                            $eq: new Date(targetDate),
+                            $gte: new Date(startDate),
+                            $lte: new Date(endDate),
                         },
                     });
 
@@ -249,6 +286,7 @@ router.get("/timtheongay", async function (req, res) {
     }
 });
 
+
 // 10. Lọc giao dịch có số tiền lớn nhất
 router.get("/timgiaoDichLonNhat", async function (req, res) {
     try {
@@ -258,7 +296,6 @@ router.get("/timgiaoDichLonNhat", async function (req, res) {
                 if (err) {
                     res.status(403).json({ "status": false, message: "Có lỗi xảy ra: " + err });
                 } else {
-                    // Tìm giao dịch có số tiền lớn nhất
                     const maxTransaction = await payModel.find().sort({ soTien: -1 }).limit(1);
 
                     if (maxTransaction.length === 0) {
