@@ -9,24 +9,36 @@ const config = require("../ultil/tokenConfig");
 // 1. Lấy toàn bộ danh sách nạp
 router.get("/all", async function (req, res) {
     try {
-      const token = req.header("Authorization").split(' ')[1];
-      if (token) {
-        JWT.verify(token, config.SECRETKEY, async function (err, id) {
-          if (err) {
-            res.status(403).json({ "status": false, message: "Có lỗi khi xảy ra" + err});
-          } else {
-   
-            var list = await payModel.find({});
-            res.status(200).json(list);
-          }
+        const authHeader = req.header("Authorization");
+        if (!authHeader) {
+            return res.status(401).json({ status: false, message: "Không tìm thấy token trong header" });
+        }
+
+        const token = authHeader.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ status: false, message: "Token không hợp lệ" });
+        }
+
+        JWT.verify(token, config.SECRETKEY, async function (err, decoded) {
+            if (err) {
+                return res.status(403).json({ status: false, message: "Token không hợp lệ hoặc đã hết hạn", error: err.message });
+            }
+
+            try {
+                const list = await payModel.find({});
+                res.status(200).json({
+                    status: true,
+                    message: "Lấy danh sách thành công",
+                    data: list,
+                });
+            } catch (dbError) {
+                res.status(500).json({ status: false, message: "Lỗi khi truy xuất cơ sở dữ liệu", error: dbError.message });
+            }
         });
-      } else {
-      res.status(404).json({ status: false, message: "Không xác thực"});
-      }
     } catch (error) {
-      res.status(404).json({ status: false, message: "Có lỗi khi xảy ra" + error});
+        res.status(500).json({ status: false, message: "Có lỗi xảy ra trong hệ thống", error: error.message });
     }
-  });
+});
 
 // 2. Lấy toàn bộ danh sách giao dịch có loaiGiaoDich là "Chuyển khoản"
 router.get("/chuyenkhoan", async function (req, res) {
